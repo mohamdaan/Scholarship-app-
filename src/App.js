@@ -5,7 +5,7 @@ import scholarshipsData from "./mockData";
 import Header from "./components/Header";
 import SearchBar from "./components/SearchBar";
 import ScholarshipList from "./components/ScholarshipList";
-import FilterForm from "./components/FilterForm"
+import FilterForm from "./components/FilterForm";
 
 // Build acronyms like "ubc", "ut", "sfu"
 const toAcronym = (str = "") => {
@@ -30,13 +30,17 @@ const toAcronym = (str = "") => {
 
 export default function App() {
   const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState({ eligibility: "All" }); //state for filtering
 
   // case-insensitive search
   const filteredScholarships = useMemo(() => {
     const q = query.trim().toLowerCase();
 
     return scholarshipsData.filter((s) => {
-      if (!q) return true;
+      if (!q)
+        return (
+          filter.eligibility === "All" || s.eligibility === filter.eligibility
+        );
 
       const name = s.name?.toLowerCase() || "";
       const university = s.university?.toLowerCase() || "";
@@ -74,28 +78,30 @@ export default function App() {
 
       // Compact: remove spaces and filler words: "University of Toronto" -> "universitytoronto"
       const uniCompact = university.replace(/\s+/g, "").replace(/of|the/g, "");
+      const matchesEligibility =
+        filter.eligibility === "All" || s.eligibility === filter.eligibility; // checks to see if current scholarship, s has same eligibility as the filter value in useState
 
-      return (
+      const matchesSearch =
         name.includes(q) ||
         university.includes(q) ||
         uniAcrNoStop.includes(q) || // "ut"
-        uniAcrAll.includes(q) || // "uot" 
+        uniAcrAll.includes(q) || // "uot"
         uniCompact.includes(q) || // "uoft" won't match here, but "universitytoronto" will
         degree.includes(q) ||
-        tags.some((t) => t.includes(q))
-      );
+        tags.some((t) => t.includes(q));
+
+      return matchesEligibility && matchesSearch;
     });
-  }, [query]);
+  }, [query, filter]);
 
   return (
     <div className="App">
       <Header />
       <SearchBar query={query} setQuery={setQuery} />
-
+      <FilterForm filter={filter} setFilter={setFilter} />
       <p style={{ margin: "8px 0" }}>
         Showing <strong>{filteredScholarships.length}</strong> result(s)
       </p>
-      <FilterForm/>
       <ScholarshipList scholarships={filteredScholarships} />
     </div>
   );
