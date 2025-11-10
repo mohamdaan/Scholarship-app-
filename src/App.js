@@ -30,16 +30,32 @@ const toAcronym = (str = "") => {
 
 export default function App() {
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState({ eligibility: "All" }); //state for filtering
+  const [filter, setFilter] = useState({
+    eligibility: "All",
+    country: "All",
+    level: "All",
+    amount: "",
+  }); //state for filtering
 
   // case-insensitive search
   const filteredScholarships = useMemo(() => {
     const q = query.trim().toLowerCase();
 
     return scholarshipsData.filter((s) => {
+      const parseAmount = (val) => {
+        if (typeof val === "number") return val;
+        const cleaned = String(val).replace(/[^0-9.]/g, "");
+        const num = Number(cleaned);
+        return Number.isFinite(num) ? num : 0;
+      };
       if (!q)
         return (
-          filter.eligibility === "All" || s.eligibility === filter.eligibility
+          (filter.eligibility === "All" ||
+            s.eligibility === filter.eligibility) &&
+          (filter.country === "All" || s.country === filter.country) &&
+          (filter.level === "All" || s.level === filter.level) &&
+          (!filter.amount ||
+            parseAmount(Number(s.amount)) >= parseAmount(Number(filter.amount)))
         );
 
       const name = s.name?.toLowerCase() || "";
@@ -81,6 +97,14 @@ export default function App() {
       const matchesEligibility =
         filter.eligibility === "All" || s.eligibility === filter.eligibility; // checks to see if current scholarship, s has same eligibility as the filter value in useState
 
+      const matchesCountry =
+        filter.country === "All" || s.country === filter.country;
+
+      const matchesLevel = filter.level === "All" || s.level === filter.level;
+
+      const matchesAmount =
+        !filter.amount || Number(s.amount) >= Number(filter.amount);
+
       const matchesSearch =
         name.includes(q) ||
         university.includes(q) ||
@@ -90,7 +114,13 @@ export default function App() {
         degree.includes(q) ||
         tags.some((t) => t.includes(q));
 
-      return matchesEligibility && matchesSearch;
+      return (
+        matchesEligibility &&
+        matchesSearch &&
+        matchesCountry &&
+        matchesLevel &&
+        matchesAmount
+      );
     });
   }, [query, filter]);
 
