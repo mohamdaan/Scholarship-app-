@@ -1,7 +1,7 @@
 // src/App.js
 import { useState, useMemo } from "react";
 import scholarshipsData from "./mockData";
-
+import { useEffect } from "react";
 import Header from "./components/Header";
 import SearchBar from "./components/SearchBar";
 import ScholarshipList from "./components/ScholarshipList";
@@ -35,7 +35,32 @@ export default function App() {
     country: "All",
     level: "All",
     amount: "",
+    onlyFavorites: false,
   }); //state for filtering
+
+  const [favorites, setFavorites] = useState(() => {
+    // load once on first render
+    try {
+      const raw = localStorage.getItem("favorites");
+      const arr = raw ? JSON.parse(raw) : [];
+      return new Set(arr);
+    } catch {
+      return new Set();
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem("favorites", JSON.stringify([...favorites]));
+  }, [favorites]);
+
+  const toggleFavorite = (id) => {
+    setFavorites((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   // case-insensitive search
   const filteredScholarships = useMemo(() => {
@@ -55,7 +80,9 @@ export default function App() {
           (filter.country === "All" || s.country === filter.country) &&
           (filter.level === "All" || s.level === filter.level) &&
           (!filter.amount ||
-            parseAmount(Number(s.amount)) >= parseAmount(Number(filter.amount)))
+            parseAmount(Number(s.amount)) >=
+              parseAmount(Number(filter.amount))) &&
+          (!filter.onlyFavorites || favorites.has(s.id))
         );
 
       const name = s.name?.toLowerCase() || "";
@@ -114,15 +141,18 @@ export default function App() {
         degree.includes(q) ||
         tags.some((t) => t.includes(q));
 
+      const matchesFavorites = !filter.onlyFavorites || favorites.has(s.id);
+
       return (
         matchesEligibility &&
         matchesSearch &&
         matchesCountry &&
         matchesLevel &&
-        matchesAmount
+        matchesAmount &&
+        matchesFavorites
       );
     });
-  }, [query, filter]);
+  }, [query, filter, favorites]);
 
   return (
     <div className="App">
@@ -132,7 +162,11 @@ export default function App() {
       <p style={{ margin: "8px 0" }}>
         Showing <strong>{filteredScholarships.length}</strong> result(s)
       </p>
-      <ScholarshipList scholarships={filteredScholarships} />
+      <ScholarshipList
+        scholarships={filteredScholarships}
+        favorites={favorites}
+        onToggleFavorite={toggleFavorite}
+      />
     </div>
   );
 }

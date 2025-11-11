@@ -64,6 +64,17 @@ export default function FilterForm({ filter, setFilter }) {
         placeholder="e.g., 5000"
         style={{ width: 120 }}
       />
+      <label htmlFor="onlyFavs" style={{ marginLeft: 8 }}>
+        <input
+          id="onlyFavs"
+          type="checkbox"
+          checked={filter.onlyFavorites}
+          onChange={(e) =>
+            setFilter((f) => ({ ...f, onlyFavorites: e.target.checked }))
+          }
+        />{" "}
+        Show favorites only
+      </label>
     </div>
   );
 }
